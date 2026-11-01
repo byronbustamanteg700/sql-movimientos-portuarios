@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" font-family="Inter, Helvetica, Arial, sans-serif">
 <rect width="1200" height="560" fill="#fcfcfb"/>
 <text x="40" y="58" font-size="30" font-weight="700" fill="#0b0b0b">Toneladas exportadas por cliente</text>
-<text x="40" y="96" font-size="20" fill="#52514e">Clientes con más del 10 % del total exportado · juntos suman el 60,3 % · consulta 8</text>
+<text x="40" y="96" font-size="20" fill="#52514e">Clientes con más del 10 % del total exportado · juntos suman el 60,3 %</text>
 <line x1="250.0" y1="140" x2="250.0" y2="484" stroke="#e1e0d9" stroke-width="1"/>
 <text x="250.0" y="512" font-size="17" fill="#898781" text-anchor="middle">0</text>
 <line x1="393.33333333333337" y1="140" x2="393.33333333333337" y2="484" stroke="#e1e0d9" stroke-width="1"/>

@@ -1,89 +1,55 @@
-# 🚢 Análisis de movimientos de contenedores con SQL
+# Movimientos de contenedores: concentración de clientes y participación de navieras
 
-Preguntas de negocio de una terminal portuaria respondidas con SQL (SQLite), sobre una base de **200 movimientos de contenedores** de septiembre de 2026: importaciones y exportaciones de cuatro navieras y quince clientes.
+Análisis en SQL (SQLite) de 200 movimientos de contenedores de una terminal portuaria durante septiembre de 2026: 129 exportaciones y 71 importaciones, cuatro navieras y quince clientes.
 
-> Proyecto de práctica con **datos simulados**: clientes y contenedores inventados, navieras reales. No contiene información de ninguna empresa.
+> Datos simulados: clientes y contenedores inventados, navieras reales.
 
-## Hallazgos principales
+## Hallazgos
 
-- **Cuatro clientes concentran el 60,3 % de los kilos exportados**: Banano Pasaje, Camarones Pacífico, Frutas El Oro y Bananera del Sur. Una cartera tan concentrada hace que la pérdida de uno solo se note en el volumen de la terminal. *(consulta 8)*
-- **Banano Pasaje ya superó las 500 toneladas exportadas (515,5 t) y a Camarones Pacífico le faltan 3,9 t** para llegar a esa meta. *(consulta 8)*
-- **Las importaciones están repartidas entre las cuatro navieras**: MSC lidera con el 29,6 % de los contenedores y la que menos mueve, CMA CGM, llega al 19,7 %. *(consulta 4)*
-- **Agroinsumos El Oro es el mayor importador** (20 contenedores) y también el de pesos más dispares: **13,6 t** de diferencia entre su contenedor más pesado y el más liviano. *(consultas 1 y 9)*
+- **Cuatro clientes concentran el 60,3 % de los kilos exportados** (Banano Pasaje, Camarones Pacífico, Frutas El Oro y Bananera del Sur). La pérdida de cualquiera de ellos movería el volumen de exportación de la terminal. → [`exportaciones.sql`](exportaciones.sql) E1
+- **Banano Pasaje superó la meta de 500 t (+15,5 t); Camarones Pacífico quedó a 3,9 t** de alcanzarla. → [`exportaciones.sql`](exportaciones.sql) E1
+- **Las importaciones están repartidas entre las cuatro navieras**: MSC lidera con el 29,6 % de los contenedores y CMA CGM, la de menor participación, tiene el 19,7 %. → [`navieras.sql`](navieras.sql) N1
+- **Agroinsumos El Oro es el principal importador** (20 contenedores) y el de carga más dispar: 13,6 t entre su contenedor más pesado y el más liviano. → [`importaciones.sql`](importaciones.sql) I1 e I2
 
 ![Toneladas exportadas por cliente](toneladas_exportadas.svg)
 
-## La base de datos
+## Preguntas analizadas
 
-Una tabla, `movimientos`: cada fila es un contenedor que entró (importación) o salió (exportación) de la terminal.
+| | Pregunta | Archivo |
+|---|---|---|
+| E1 | ¿Qué clientes concentran más del 10 % de lo exportado y cómo están frente a la meta de 500 t? | [`exportaciones.sql`](exportaciones.sql) |
+| E2 | ¿Qué parejas naviera–cliente sostienen el volumen exportado? | [`exportaciones.sql`](exportaciones.sql) |
+| E3 | Volumen y pesos de un segmento: 40 pies, MSC y Maersk, 5–25 de septiembre | [`exportaciones.sql`](exportaciones.sql) |
+| E4 | ¿Cuál fue el contenedor más pesado de ese segmento? | [`exportaciones.sql`](exportaciones.sql) |
+| I1 | ¿Quiénes son los importadores y cuánto pesa en promedio su carga? | [`importaciones.sql`](importaciones.sql) |
+| I2 | ¿Qué importadores tienen cargas más dispares? | [`importaciones.sql`](importaciones.sql) |
+| I3 | ¿Qué combinaciones cliente–tamaño superan 5 contenedores y 85 t (sin Maersk)? | [`importaciones.sql`](importaciones.sql) |
+| N1 | ¿Qué participación tiene cada naviera en las importaciones? | [`navieras.sql`](navieras.sql) |
+| N2 | ¿Qué clientes de carga seca de Maersk y CMA CGM promedian más de 21 t? | [`navieras.sql`](navieras.sql) |
+
+## Datos
+
+Tabla `movimientos` ([`movimientos.sql`](movimientos.sql)): una fila por contenedor que entró o salió de la terminal.
 
 ```mermaid
 erDiagram
     MOVIMIENTOS {
-        INTEGER id PK "identificador del movimiento"
-        TEXT contenedor "código del contenedor (ISO 6346)"
+        INTEGER id PK
+        TEXT contenedor "código ISO 6346"
         INTEGER tamano "20 o 40 pies"
-        TEXT tipo "Refrigerado o Seco"
-        TEXT naviera "Maersk, MSC, Hapag-Lloyd, CMA CGM"
-        TEXT movimiento "Importación o Exportación"
+        TEXT tipo "Refrigerado / Seco"
+        TEXT naviera
+        TEXT movimiento "Importación / Exportación"
         TEXT fecha "AAAA-MM-DD"
-        INTEGER peso_kg "peso bruto en kilos"
-        TEXT cliente "importador o exportador"
+        INTEGER peso_kg "peso bruto"
+        TEXT cliente
     }
 ```
 
-## Consultas
-
-Las 9 consultas están en [`consultas.sql`](consultas.sql), cada una con su pregunta de negocio encima y el resultado esperado debajo.
-
-| # | Pregunta de negocio | Nivel | Qué demuestra |
-|---|---|---|---|
-| 1 | Importaciones y peso promedio por cliente | Medio | `GROUP BY`, `COUNT`, `AVG`, `ROUND`, orden por alias |
-| 2 | Parejas naviera–cliente con al menos 5 exportaciones | Medio | `GROUP BY` de dos columnas, `HAVING`, orden dentro de cada grupo |
-| 3 | Clientes de carga seca con peso promedio > 21 t en un rango de fechas | Medio | `IN`, `BETWEEN`, `HAVING AVG` |
-| 4 | Participación de cada naviera en las importaciones | Medio | Toneladas y porcentajes calculados (`/ 1000.0`, `* 100.0`) |
-| 5 | Indicadores de un segmento con cinco condiciones | Alto | `AND` / `OR` con paréntesis, `NOT`, `COUNT(DISTINCT)`, `MAX` |
-| 6 | El contenedor más pesado de ese segmento | Alto | Método de dos pasos: el filtro se repite y se añade el máximo |
-| 7 | Grupos cliente–tamaño con dos umbrales | Alto | `HAVING` con dos condiciones, `WHERE` frente a `HAVING` |
-| 8 | Concentración de exportaciones y brecha frente a una meta | Alto | Porcentaje dentro del `HAVING`, columna calculada de brecha |
-| 9 | Dispersión de pesos por cliente importador | Alto | Resta de funciones con paréntesis `(MAX - MIN) / 1000.0` |
-
-## Ejemplo: concentración de exportaciones
-
-```sql
--- 8. Clientes con más del 10 % de los kilos exportados:
---    toneladas, porcentaje del total y cuánto les falta para 500 t.
-SELECT cliente,
-       ROUND(SUM(peso_kg) / 1000.0, 1)            AS toneladas,
-       ROUND(SUM(peso_kg) * 100.0 / 3076500, 2)   AS porcentaje,
-       ROUND(500 - SUM(peso_kg) / 1000.0, 1)      AS faltan_para_500
-FROM movimientos
-WHERE movimiento = 'Exportación'
-GROUP BY cliente
-HAVING SUM(peso_kg) * 100.0 / 3076500 > 10
-ORDER BY porcentaje DESC;
+```bash
+sqlite3 terminal.db < movimientos.sql
+sqlite3 -header -column terminal.db < exportaciones.sql
 ```
 
-| cliente | toneladas | porcentaje | faltan_para_500 |
-|---|---:|---:|---:|
-| Banano Pasaje | 515.5 | 16.76 | -15.5 |
-| Camarones Pacífico | 496.1 | 16.13 | 3.9 |
-| Frutas El Oro | 451.4 | 14.67 | 48.6 |
-| Bananera del Sur | 393.3 | 12.78 | 106.7 |
-
-Un valor negativo en `faltan_para_500` significa que el cliente ya superó la meta.
-
-## Pruébalo tú mismo
-
-1. Abre [sqliteonline.com](https://sqliteonline.com).
-2. Pega el contenido de [`base_practica_200.sql`](base_practica_200.sql) en el editor y pulsa **Run**.
-3. Comprueba con `SELECT COUNT(*) FROM movimientos;` (debe dar 200) y ejecuta cualquier consulta de `consultas.sql`.
-
-## Próximos pasos
-
-- Cruzar la tabla con `clientes` y `navieras` (`JOIN`).
-- Calcular los totales dentro de la consulta (subconsultas) en vez de escribirlos a mano (3.076.500 kg y 71 importaciones).
-- Clasificar movimientos con `CASE` y analizar por semana con funciones de fecha.
-
 ---
-**Byron Bustamante** · Economista · Análisis de datos (Excel, Power BI, SQL) · [Tablero de Power BI](https://byronbustamanteg700.github.io/powerbi-control-comercial/)
+**Byron Bustamante** · Economista · Análisis de datos (SQL, Power BI, Excel) · [LinkedIn](https://www.linkedin.com/in/byron-bustamante-ec/) · [Tablero de Power BI](https://byronbustamanteg700.github.io/powerbi-control-comercial/)
